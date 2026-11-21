@@ -1,0 +1,26 @@
+# dependencies / build output
+node_modules/
+dist/
+*.tgz
+coverage/
+
+# never commit credentials or captured sessions
+*.jwt
+*.token
+token*.json
+tokens/
+session*.json
+.env
+.env.*
+*.har
+*.mitm
+
+# local homebridge test instances
+.homebridge/
+test-homebridge/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+npm-debug.log*

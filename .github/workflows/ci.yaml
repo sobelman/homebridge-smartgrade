@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: Lint (eslint + type-check incl. tests)
+        run: npm run lint
+      - name: Unit tests (mocked HTTP only, no network)
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Validate config.schema.json
+        run: node -e "JSON.parse(require('fs').readFileSync('config.schema.json','utf8'))"

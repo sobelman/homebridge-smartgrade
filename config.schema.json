@@ -1,0 +1,130 @@
+{
+  "pluginAlias": "SmartGrade",
+  "pluginType": "platform",
+  "singular": true,
+  "customUi": true,
+  "customUiPath": "./dist/homebridge-ui",
+  "headerDisplay": "SmartGrade Secure / Dealor (דילאור) cloud smart switches. Log in with the SMS code using the form above. ⚠️ The vendor login lasts 30 days and cannot be refreshed: log in again here about once a month.",
+  "footerDisplay": "Each device (or a single relay of it) can be exposed to HomeKit as a Switch, an Outlet or a Valve. Valve suits a boiler (water heater).",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "SmartGrade",
+        "required": true
+      },
+      "jwt": {
+        "title": "Login token (set by the login form above)",
+        "type": "string",
+        "description": "Filled in automatically after the SMS login. Valid for 30 days. Do not share it."
+      },
+      "userId": {
+        "title": "User id (set by the login form above)",
+        "type": "string"
+      },
+      "mobile": {
+        "title": "Mobile number (used to prefill the next login)",
+        "type": "string",
+        "pattern": "^(05\\d{8})?$"
+      },
+      "pollInterval": {
+        "title": "Polling interval (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 15,
+        "maximum": 3600
+      },
+      "exposePower": {
+        "title": "Show power / current / voltage (Eve app)",
+        "type": "boolean",
+        "default": false,
+        "description": "Adds read-only Eve characteristics (W, A, V) from the device's last power reading. Visible in the Eve app and other apps that show custom characteristics, not in Apple Home."
+      },
+      "devices": {
+        "title": "Per-device settings",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Device id",
+              "type": "string",
+              "required": true,
+              "description": "12 hex digits, shown in the device list above."
+            },
+            "relay": {
+              "title": "Relay (leave empty for all relays)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "name": {
+              "title": "HomeKit name",
+              "type": "string"
+            },
+            "accessoryType": {
+              "title": "HomeKit accessory type",
+              "type": "string",
+              "default": "switch",
+              "oneOf": [
+                { "title": "Switch", "enum": ["switch"] },
+                { "title": "Outlet", "enum": ["outlet"] },
+                { "title": "Valve (suggested for boilers)", "enum": ["valve"] }
+              ]
+            },
+            "valveType": {
+              "title": "Valve icon",
+              "type": "string",
+              "default": "generic",
+              "oneOf": [
+                { "title": "Generic valve", "enum": ["generic"] },
+                { "title": "Water faucet", "enum": ["faucet"] }
+              ],
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices] && model.devices[arrayIndices].accessoryType === 'valve';"
+              }
+            },
+            "hidden": {
+              "title": "Hide from HomeKit",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
+    }
+  },
+  "layout": [
+    "name",
+    {
+      "type": "fieldset",
+      "title": "Devices",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        {
+          "key": "devices",
+          "type": "array",
+          "buttonText": "Add device",
+          "items": [
+            "devices[].id",
+            "devices[].relay",
+            "devices[].name",
+            "devices[].accessoryType",
+            "devices[].valveType",
+            "devices[].hidden"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Advanced",
+      "expandable": true,
+      "expanded": false,
+      "items": ["pollInterval", "exposePower", "mobile", "userId", "jwt"]
+    }
+  ]
+}

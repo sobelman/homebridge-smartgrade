@@ -1,0 +1,199 @@
+<!--
+  SmartGrade custom settings screen for homebridge-config-ui-x.
+  Phone -> "Send SMS" -> code -> 30-day login token saved in the plugin config.
+  Mirrors the Home Assistant integration's config flow + re-authentication.
+-->
+<style>
+  .sg-card { border: 1px solid rgba(127,127,127,.35); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  .sg-he { direction: rtl; text-align: right; display: block; opacity: .8; font-size: .9em; }
+  .sg-badge { display: inline-block; padding: .15rem .5rem; border-radius: 1rem; font-size: .8rem; font-weight: 600; }
+  .sg-ok { background: #1e7e34; color: #fff; }
+  .sg-warn { background: #ffc107; color: #222; }
+  .sg-bad { background: #c82333; color: #fff; }
+  .sg-muted { opacity: .7; font-size: .85rem; }
+  .sg-dev { border-top: 1px solid rgba(127,127,127,.25); padding: .75rem 0; }
+  .sg-dev:first-child { border-top: 0; }
+  .sg-kv { font-size: .85rem; margin: .1rem 0; }
+  .sg-kv b { min-width: 9rem; display: inline-block; }
+  code { word-break: break-all; }
+</style>
+
+<div class="sg-card" id="sg-login-card">
+  <h5 class="mb-1">SmartGrade login <span class="sg-he">התחברות לדילאור (SmartGrade)</span></h5>
+  <div id="sg-status" class="mb-3"></div>
+
+  <div id="sg-step-mobile">
+    <label for="sg-mobile" class="form-label">Mobile number registered in the Dealor app
+      <span class="sg-he">מספר הנייד הרשום באפליקציית דילאור</span></label>
+    <div class="input-group mb-2">
+      <input type="tel" class="form-control" id="sg-mobile" placeholder="05XXXXXXXX" inputmode="numeric" autocomplete="tel" dir="ltr">
+      <button class="btn btn-primary" type="button" id="sg-send">Send SMS · שלח SMS</button>
+    </div>
+  </div>
+
+  <div id="sg-step-code" style="display:none">
+    <label for="sg-code" class="form-label">Code from the SMS <span class="sg-he">הקוד שהתקבל ב-SMS</span></label>
+    <div class="input-group mb-2">
+      <input type="text" class="form-control" id="sg-code" placeholder="1234" inputmode="numeric" autocomplete="one-time-code" dir="ltr">
+      <button class="btn btn-success" type="button" id="sg-submit">Log in · התחבר</button>
+    </div>
+    <button class="btn btn-link btn-sm p-0" type="button" id="sg-back">Use another number / resend · מספר אחר / שליחה מחדש</button>
+  </div>
+
+  <p class="sg-muted mt-3 mb-0">
+    ⚠️ <b>The vendor login lasts 30 days and has no refresh.</b> About once a month, come back here, press
+    “Send SMS” and enter the new code. Homebridge restarts the plugin with the new token.
+    <span class="sg-he">⚠️ <b>ההתחברות של היצרן תקפה ל-30 יום בלבד ואין חידוש אוטומטי.</b> פעם בחודש בערך חזרו לכאן, לחצו "שלח SMS" והזינו את הקוד החדש.</span>
+  </p>
+</div>
+
+<div class="sg-card" id="sg-devices-card" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">Devices <span class="sg-he">מכשירים</span></h5>
+    <button class="btn btn-outline-secondary btn-sm" type="button" id="sg-load">Load devices · טען מכשירים</button>
+  </div>
+  <p class="sg-muted">Read-only information from the cloud. Timers set in the Dealor app keep running in the cloud; this plugin only shows them.
+    <span class="sg-he">מידע לקריאה בלבד. טיימרים שהוגדרו באפליקציה ממשיכים לרוץ בענן; הפלאגין רק מציג אותם.</span></p>
+  <div id="sg-devices"></div>
+</div>
+
+<script>
+(async () => {
+  const hb = window.homebridge;
+  let pluginConfig = await hb.getPluginConfig();
+  if (!pluginConfig.length) {
+    pluginConfig = [{ platform: 'SmartGrade', name: 'SmartGrade' }];
+    await hb.updatePluginConfig(pluginConfig);
+  }
+  const cfg = () => pluginConfig[0];
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtDate = (sec) => sec ? new Date(sec * 1000).toLocaleString() : '?';
+  const TYPE_LABEL = { switch: 'Switch', outlet: 'Outlet', valve: 'Valve' };
+
+  hb.addEventListener('configChanged', (event) => { pluginConfig = event.data; });
+
+  async function renderStatus() {
+    const st = await hb.request('/status', { jwt: cfg().jwt });
+    let html;
+    if (st.state === 'missing') {
+      html = '<span class="sg-badge sg-bad">Not logged in · לא מחובר</span>';
+    } else if (st.state === 'expired') {
+      html = `<span class="sg-badge sg-bad">Login expired · ההתחברות פגה</span> <span class="sg-muted">${esc(fmtDate(st.expiresAt))}</span>
+        <div class="mt-1">Log in again below. <span class="sg-he">יש להתחבר מחדש למטה.</span></div>`;
+    } else if (st.state === 'expiring') {
+      html = `<span class="sg-badge sg-warn">⚠️ Expires in ${esc(Math.max(0, st.daysLeft))} day(s) · פג בעוד ${esc(Math.max(0, st.daysLeft))} ימים</span>
+        <span class="sg-muted">${esc(fmtDate(st.expiresAt))}</span>
+        <div class="mt-1">Renew now with a new SMS code. <span class="sg-he">מומלץ להתחבר מחדש עכשיו.</span></div>`;
+    } else {
+      html = `<span class="sg-badge sg-ok">Logged in · מחובר</span>
+        <span class="sg-muted">valid until ${esc(fmtDate(st.expiresAt))}${st.daysLeft !== null ? ` (${esc(st.daysLeft)} days)` : ''}</span>`;
+    }
+    $('sg-status').innerHTML = html;
+    $('sg-devices-card').style.display = cfg().jwt && st.state !== 'expired' ? '' : 'none';
+  }
+
+  function showStep(step) {
+    $('sg-step-mobile').style.display = step === 'mobile' ? '' : 'none';
+    $('sg-step-code').style.display = step === 'code' ? '' : 'none';
+    if (step === 'code') { $('sg-code').value = ''; $('sg-code').focus(); }
+  }
+
+  $('sg-mobile').value = cfg().mobile || '';
+
+  $('sg-send').addEventListener('click', async () => {
+    hb.showSpinner();
+    try {
+      const res = await hb.request('/send-sms', { mobile: $('sg-mobile').value });
+      cfg().mobile = res.mobile;
+      hb.toast.success('SMS sent · נשלח SMS');
+      showStep('code');
+    } catch (e) {
+      hb.toast.error(e.message || 'Error', 'SmartGrade');
+    } finally {
+      hb.hideSpinner();
+    }
+  });
+
+  $('sg-back').addEventListener('click', () => showStep('mobile'));
+
+  $('sg-submit').addEventListener('click', async () => {
+    hb.showSpinner();
+    try {
+      const res = await hb.request('/submit-code', { code: $('sg-code').value });
+      cfg().jwt = res.jwt;
+      if (res.userId !== null && res.userId !== undefined) { cfg().userId = String(res.userId); }
+      await hb.updatePluginConfig(pluginConfig);
+      await hb.savePluginConfig();
+      hb.toast.success('Logged in and saved. Restart Homebridge (or the child bridge) to apply. · נשמר, יש להפעיל מחדש את Homebridge.');
+      showStep('mobile');
+      await renderStatus();
+      hb.hideSchemaForm();
+      hb.showSchemaForm();
+    } catch (e) {
+      hb.toast.error(e.message || 'Error', 'SmartGrade');
+    } finally {
+      hb.hideSpinner();
+    }
+  });
+
+  function deviceHtml(d) {
+    const kv = (k, v) => v === null || v === undefined || v === '' ? '' : `<div class="sg-kv"><b>${esc(k)}</b> <span dir="auto">${esc(v)}</span></div>`;
+    const configured = (cfg().devices || []).find((x) => String(x.id).toLowerCase() === String(d.id).toLowerCase());
+    const relays = d.relays.map((r) => `${r.relay}${r.name ? ` (${r.name})` : ''}: ${r.on === null ? '?' : r.on ? 'ON' : 'OFF'}`).join(', ');
+    const timers = d.timers.length
+      ? d.timers.map((t) => {
+        const bits = [t.kind, Array.isArray(t.days) ? `days ${t.days.join(',')}` : t.days, t.on_time && `on ${t.on_time}`, t.off_time && `off ${t.off_time}`,
+          t.on_minutes && `${t.on_minutes} min on`, t.off_minutes && `${t.off_minutes} min off`, t.from_date && `from ${t.from_date}`, t.to_date && `to ${t.to_date}`]
+          .filter(Boolean).join(' · ');
+        return `<li>${t.enabled ? '✅' : '⏸️'} <span dir="auto">${esc(t.name || 'Timer')}</span> <span class="sg-muted">${esc(bits)}</span></li>`;
+      }).join('')
+      : '<li class="sg-muted">No timers · אין טיימרים</li>';
+    const next = d.upcoming[0];
+    const onlineBadge = d.online === false ? '<span class="sg-badge sg-bad">offline</span>' : d.online ? '<span class="sg-badge sg-ok">online</span>' : '';
+    return `<div class="sg-dev">
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div><b dir="auto">${esc(d.name)}</b> ${onlineBadge}</div>
+        ${d.relays.length ? (configured
+    ? `<span class="sg-muted">Configured as ${esc(TYPE_LABEL[configured.accessoryType] || 'Switch')}</span>`
+    : `<button class="btn btn-outline-primary btn-sm sg-add" data-id="${esc(d.id)}" data-type="${esc(d.suggestedType)}" data-name="${esc(d.name)}">
+             Add as ${esc(TYPE_LABEL[d.suggestedType])} (suggested)</button>`) : '<span class="sg-muted">Not exposed (no on/off relay)</span>'}
+      </div>
+      ${kv('Model', d.model)}${kv('דגם', d.modelHebrew)}${kv('Device id', d.id)}${kv('MAC', d.mac)}
+      ${kv('Site', d.site)}${kv('Location', d.location)}${kv('Firmware', d.firmware)}
+      ${kv('Firmware update pending', d.upgradePending === null ? null : d.upgradePending ? 'yes' : 'no')}
+      ${kv('Relays', relays)}${kv('Max on time (min)', d.maxOnMinutes)}
+      ${d.power ? kv('Power', `${d.power.watt ?? '?'} W · ${d.power.amper ?? '?'} A · ${d.power.volt ?? '?'} V`) + kv('Signal strength', d.power.signalStrength !== null ? `${d.power.signalStrength} dBm` : null) : ''}
+      ${kv('Next scheduled action', next ? `${new Date(next.time).toLocaleString()} → ${next.action || '?'}` : null)}
+      ${d.isShutter ? '<div class="sg-muted">Shutter: hidden unless you add it below (exposed as plain relays; untested).</div>' : ''}
+      <div class="sg-kv"><b>Timers</b></div><ul class="mb-0">${timers}</ul>
+    </div>`;
+  }
+
+  $('sg-load').addEventListener('click', async () => {
+    hb.showSpinner();
+    try {
+      const res = await hb.request('/devices', { jwt: cfg().jwt, userId: cfg().userId });
+      $('sg-devices').innerHTML = res.devices.length ? res.devices.map(deviceHtml).join('') : '<p class="sg-muted">No devices found.</p>';
+      document.querySelectorAll('.sg-add').forEach((btn) => btn.addEventListener('click', async () => {
+        const devices = cfg().devices || [];
+        devices.push({ id: btn.dataset.id, name: btn.dataset.name, accessoryType: btn.dataset.type, ...(btn.dataset.type === 'valve' ? { valveType: 'generic' } : {}) });
+        cfg().devices = devices;
+        await hb.updatePluginConfig(pluginConfig);
+        hb.toast.success('Added to the device list below. Press Save. · נוסף לרשימה, לחצו שמור.');
+        hb.hideSchemaForm();
+        hb.showSchemaForm();
+        btn.replaceWith(Object.assign(document.createElement('span'), { className: 'sg-muted', textContent: `Configured as ${TYPE_LABEL[btn.dataset.type]}` }));
+      }));
+    } catch (e) {
+      hb.toast.error(e.message || 'Error', 'SmartGrade');
+    } finally {
+      hb.hideSpinner();
+    }
+  });
+
+  await renderStatus();
+  hb.showSchemaForm();
+})();
+</script>
