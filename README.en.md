@@ -138,4 +138,4 @@ Layout: `src/api/` (cloud client, ported from the Home Assistant integration), `
 
 ## Disclaimer
 
-SmartGrade, IoTech Verticals and Dealor are trademarks of their respective owners. This project is provided as‑is under the [MIT license](LICENSE); use it at your own risk, especially with high‑power loads such as a water heater.
+SmartGrade, IoTech Verticals and Dealor are trademarks of their respective owners, and this project is not affiliated with them. The software is provided as‑is, without warranty of any kind, under the [MIT license](LICENSE). Use it at your own risk.
