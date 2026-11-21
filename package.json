@@ -2,9 +2,9 @@
   "name": "homebridge-smartgrade",
   "displayName": "SmartGrade Secure (Dealor)",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
-  "description": "Homebridge plugin for SmartGrade Secure / IoTech Verticals / Dealor (דילאור) cloud smart switches: boiler switches, sockets and light switches, with SMS login from the Homebridge UI and a per-device HomeKit accessory type (Switch / Outlet / Valve).",
+  "description": "Homebridge plugin for SmartGrade Secure / IoTech Verticals / Dealor (\u05d3\u05d9\u05dc\u05d0\u05d5\u05e8) cloud smart switches: boiler switches, sockets and light switches, with SMS login from the Homebridge UI and a per-device HomeKit accessory type (Switch / Outlet / Valve).",
   "author": "sobelman",
   "license": "MIT",
   "homepage": "https://github.com/sobelman/homebridge-smartgrade#readme",
@@ -17,6 +17,7 @@
   },
   "keywords": [
     "homebridge-plugin",
+    "supports-hap",
     "homebridge",
     "homekit",
     "smartgrade",
@@ -37,7 +38,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
+    "node": "^20.18.0 || ^22.10.0 || ^24.0.0 || ^26.0.0",
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "scripts": {
