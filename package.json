@@ -33,7 +33,7 @@
     "dist",
     "config.schema.json",
     "README.md",
-    "README.he.md",
+    "README.en.md",
     "LICENSE"
   ],
   "engines": {
