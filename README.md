@@ -6,14 +6,21 @@
 
 [English](README.en.md) | **עברית**
 
+<div dir="ltr" align="center">
+
+[![CI](https://github.com/sobelman/homebridge-smartgrade/actions/workflows/ci.yaml/badge.svg)](https://github.com/sobelman/homebridge-smartgrade/actions/workflows/ci.yaml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Homebridge](https://img.shields.io/badge/Homebridge-1.8%20%7C%202.x-491F59?logo=homebridge)](https://homebridge.io) [![Home Assistant](https://img.shields.io/badge/also%20for-Home%20Assistant-41BDF5?logo=homeassistant)](https://github.com/sobelman/ha-smartgrade)
+
+</div>
+
 <img src="images/smartgrade-product.jpg" alt="מתג חכם לדוד של SmartGrade" width="380">
 
 </div>
 
-<div dir="rtl" align="right">
-
 > [!WARNING]
 > זהו פלאגין **לא‑רשמי** שנבנה על ידי הקהילה. הוא אינו קשור ל‑IoTech Verticals או לדילאור, ואינו נתמך או מאושר על ידן.
+
+<div dir="rtl" align="right">
+
 
 ## מה הפלאגין עושה
 

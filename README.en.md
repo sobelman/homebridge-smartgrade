@@ -6,10 +6,7 @@
 
 **English** | [עברית](README.md)
 
-[![CI](https://github.com/sobelman/homebridge-smartgrade/actions/workflows/ci.yaml/badge.svg)](https://github.com/sobelman/homebridge-smartgrade/actions/workflows/ci.yaml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Homebridge](https://img.shields.io/badge/Homebridge-1.8%20%7C%202.x-491F59?logo=homebridge)](https://homebridge.io)
-[![Home Assistant version](https://img.shields.io/badge/also%20for-Home%20Assistant-41BDF5?logo=homeassistant)](https://github.com/sobelman/ha-smartgrade)
+[![CI](https://github.com/sobelman/homebridge-smartgrade/actions/workflows/ci.yaml/badge.svg)](https://github.com/sobelman/homebridge-smartgrade/actions/workflows/ci.yaml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Homebridge](https://img.shields.io/badge/Homebridge-1.8%20%7C%202.x-491F59?logo=homebridge)](https://homebridge.io) [![Home Assistant version](https://img.shields.io/badge/also%20for-Home%20Assistant-41BDF5?logo=homeassistant)](https://github.com/sobelman/ha-smartgrade)
 
 <img src="images/smartgrade-product.jpg" alt="SmartGrade boiler switch" width="380">
 
