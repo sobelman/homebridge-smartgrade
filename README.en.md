@@ -103,10 +103,8 @@ Example `config.json` (normally written by the settings screen):
 | Boiler switches (6, **8**) | Relay → Switch / Outlet / Valve (Valve suggested) |
 | Sockets and plug adapters (2, 5, 16, 17) | Relay → Switch / Outlet / Valve (Outlet suggested) |
 | Wi‑Fi switch (7), light switches 1–3 gangs (9–13), DIN rail switches (14, 15, 22) | One accessory per relay |
-| Shutters (18, 19, 36) | Hidden by default; add them to the device list to expose their relays as plain switches (state mapping unverified) |
+| Shutters (18, 19, 36) | Not supported yet (planned for a future version) |
 | AC panels, IR, gateway, power meter, sensors | Not exposed (no on/off relay) – still listed with details in the settings screen |
-
-> **Only product 8 (Gewiss 3‑module boiler switch, single relay) has been tested on a live account.** Everything else follows the official app's models and is untested – reports and fixes are welcome.
 
 ## Timers
 

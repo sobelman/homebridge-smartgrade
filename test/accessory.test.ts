@@ -35,6 +35,9 @@ describe('products', () => {
     assert.equal(relayCount({ id: 'x', product_id: 26 }), 0, 'sensors have no relay');
     assert.equal(relayCount({ id: 'x', product_id: 99 }), 0, 'unknown product without switch_1');
     assert.equal(relayCount({ id: 'x', product_id: 99, switch_1: true }), 1);
+    assert.equal(relayCount({ id: 'x', product_id: 18, switch_num: 2, switch_1: false, switch_2: false }), 0);
+    assert.equal(relayCount({ id: 'x', product_id: 19, switch_1: true }), 0);
+    assert.equal(relayCount({ id: 'x', product_id: 36 }), 0);
     assert.equal(deviceMac('AABBCCDDEEFF'), 'aa:bb:cc:dd:ee:ff');
     assert.equal(deviceMac('nope'), null);
     assert.equal(firmwareRevision('20260410_var2_v2.9.2'), '2.9.2');
@@ -68,11 +71,6 @@ describe('products', () => {
     assert.equal(resolveRelay(TRIPLE_LIGHT, 3).name, 'Hall lights 3');
   });
 
-  it('hides shutters unless configured', () => {
-    const shutter = { id: '0a0b0c0d0e0f', product_id: 18, switch_num: 2, switch_1: false, switch_2: false };
-    assert.equal(resolveRelay(shutter, 1).hidden, true);
-    assert.equal(resolveRelay(shutter, 1, [{ id: shutter.id }]).hidden, false);
-  });
 });
 
 describe('accessory type mapping', () => {

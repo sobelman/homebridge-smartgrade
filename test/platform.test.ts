@@ -71,4 +71,33 @@ describe('platform', () => {
     assert.equal(toggle.path, `api/v1/devices/${TRIPLE_LIGHT.id}/toggle_switches`);
     assert.deepEqual(toggle.body, { switch_2: true });
   });
+
+  it('does not expose shutters even when they are listed in config', async () => {
+    const shutters = [
+      { id: '111111111111', name: 'Shutter 18', product_id: 18, switch_num: 2, switch_1: false, switch_2: false },
+      { id: '222222222222', name: 'Shutter 19', product_id: 19, switch_num: 2, switch_1: true, switch_2: false },
+      { id: '333333333333', name: 'Shutter 36', product_id: 36, switch_num: 2, switch_1: false, switch_2: true },
+    ];
+    const { platform, registered, hap, lines, calls } = setup({
+      jwt: fakeJwt(nowSec() + 20 * 86400),
+      devices: [
+        { id: BOILER.id, accessoryType: 'valve' },
+        { id: TRIPLE_LIGHT.id, relay: 3, hidden: true },
+        { id: '111111111111', accessoryType: 'switch' },
+        { id: '222222222222' },
+        { id: '333333333333', relay: 1 },
+      ],
+    }, SITE_ROUTES([BOILER, TRIPLE_LIGHT, { id: 'ffeeddccbbaa', product_id: 26 }, ...shutters]));
+    await platform.poll(true);
+    platform.stop();
+    assert.equal(registered.length, 3, 'boiler + 2 visible light relays; shutters and sensor omitted');
+    assert.ok(registered[0].getService(hap.Service.Valve));
+    const names = registered.map((a) => a.displayName).join(' ');
+    assert.equal(/[Ss]hutter/.test(names), false);
+    for (const name of ['Shutter 18', 'Shutter 19', 'Shutter 36']) {
+      assert.ok(lines.some((l) => l.startsWith('info:') && l.includes(`Skipping shutter "${name}"`)));
+      assert.ok(lines.some((l) => l.startsWith('info:') && l.includes(`Ignoring device config for shutter "${name}"`)));
+    }
+    assert.ok(calls.every((c) => c.method === 'GET'), 'shutter handling never writes to the cloud');
+  });
 });

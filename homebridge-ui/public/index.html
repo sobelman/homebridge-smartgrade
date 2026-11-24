@@ -155,7 +155,9 @@
     return `<div class="sg-dev">
       <div class="d-flex justify-content-between align-items-center flex-wrap">
         <div><b dir="auto">${esc(d.name)}</b> ${onlineBadge}</div>
-        ${d.relays.length ? (configured
+        ${d.isShutter
+          ? '<span class="sg-muted">Shutters are not supported yet · תריסים עדיין לא נתמכים</span>'
+          : d.relays.length ? (configured
     ? `<span class="sg-muted">Configured as ${esc(TYPE_LABEL[configured.accessoryType] || 'Switch')}</span>`
     : `<button class="btn btn-outline-primary btn-sm sg-add" data-id="${esc(d.id)}" data-type="${esc(d.suggestedType)}" data-name="${esc(d.name)}">
              Add as ${esc(TYPE_LABEL[d.suggestedType])} (suggested)</button>`) : '<span class="sg-muted">Not exposed (no on/off relay)</span>'}
@@ -166,7 +168,6 @@
       ${kv('Relays', relays)}${kv('Max on time (min)', d.maxOnMinutes)}
       ${d.power ? kv('Power', `${d.power.watt ?? '?'} W · ${d.power.amper ?? '?'} A · ${d.power.volt ?? '?'} V`) + kv('Signal strength', d.power.signalStrength !== null ? `${d.power.signalStrength} dBm` : null) : ''}
       ${kv('Next scheduled action', next ? `${new Date(next.time).toLocaleString()} → ${next.action || '?'}` : null)}
-      ${d.isShutter ? '<div class="sg-muted">Shutter: hidden unless you add it below (exposed as plain relays; untested).</div>' : ''}
       <div class="sg-kv"><b>Timers</b></div><ul class="mb-0">${timers}</ul>
     </div>`;
   }

@@ -5,7 +5,7 @@ import { SmartGradeAuthError } from './api/errors.js';
 import { tokenStatus } from './api/jwt.js';
 import type { FetchLike, SmartGradeDevice, SmartGradeUsageStats } from './api/types.js';
 import { type AccessoryContext, type AccessoryHost, SmartGradeAccessory } from './platformAccessory.js';
-import { productId, productName, relayCount, resolveRelay } from './products.js';
+import { isShutterProduct, normalizeDeviceId, productId, productName, relayCount, resolveRelay } from './products.js';
 import {
   DEFAULT_POLL_INTERVAL,
   MIN_POLL_INTERVAL,
@@ -147,9 +147,24 @@ export class SmartGradePlatform implements DynamicPlatformPlugin, AccessoryHost 
   private sync(devices: Map<string, SmartGradeDevice>, stats: Map<string, SmartGradeUsageStats | null>, initial: boolean): void {
     const seen = new Set<string>();
     for (const device of devices.values()) {
+      const pid = productId(device);
+      if (isShutterProduct(pid)) {
+        if (initial) {
+          this.log.info(
+            `Skipping shutter "${device.name ?? device.id}" (${productName(pid)}): shutter control is not supported yet.`,
+          );
+          const shutterId = normalizeDeviceId(device.id);
+          if ((this.config.devices ?? []).some((c) => normalizeDeviceId(c.id) === shutterId)) {
+            this.log.info(
+              `Ignoring device config for shutter "${device.name ?? device.id}": shutter control is not supported yet.`,
+            );
+          }
+        }
+        continue;
+      }
       const count = relayCount(device);
       if (initial && count === 0) {
-        this.log.info(`Skipping "${device.name ?? device.id}" (${productName(productId(device))}): no on/off relay.`);
+        this.log.info(`Skipping "${device.name ?? device.id}" (${productName(pid)}): no on/off relay.`);
       }
       for (let relay = 1; relay <= count; relay++) {
         const resolved = resolveRelay(device, relay, this.config.devices ?? []);

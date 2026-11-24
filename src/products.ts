@@ -3,8 +3,7 @@ import type { AccessoryType, DeviceConfig, ValveKind } from './settings.js';
 
 /**
  * product_id -> [English name, Hebrew name], taken from the official app's
- * strings (same table as the Home Assistant integration). Only product 8 has
- * been tested live; everything else is best-effort.
+ * strings (same table as the Home Assistant integration).
  */
 export const PRODUCTS: Readonly<Record<number, readonly [string, string]>> = {
   2: ['Smart adapter for Israeli socket', 'מתאם חכם לשקע ישראלי'],
@@ -45,8 +44,17 @@ export const SWITCH_PRODUCTS = new Set([2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 export const BOILER_PRODUCTS = new Set([6, 8]);
 /** Sockets / plug adapters: Outlet is the suggested HomeKit type. */
 export const OUTLET_PRODUCTS = new Set([2, 5, 16, 17]);
-/** Shutters drive an up and a down relay; their state mapping is unverified. */
+/** Shutter products. Control is not supported yet (no HomeKit accessory). */
 export const SHUTTER_PRODUCTS = new Set([18, 19, 36]);
+
+export function isShutterProduct(pid: number | null): boolean {
+  return pid !== null && SHUTTER_PRODUCTS.has(pid);
+}
+
+/** Canonical device id for config / lookups (lowercase, no colons or dashes). */
+export function normalizeDeviceId(id: unknown): string {
+  return String(id ?? '').replace(/[:-]/g, '').toLowerCase();
+}
 /** Products without user-facing relays (AC, IR, gateway, meter, sensors). */
 export const NON_RELAY_PRODUCTS = new Set([20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 35]);
 
@@ -75,16 +83,16 @@ export function firmwareRevision(firmware: string | null | undefined): string | 
 }
 
 /**
- * How many relays (switch_1..switch_3) a device exposes. Shutters and
- * non-relay products return their raw count; callers decide whether to expose.
+ * How many relays (switch_1..switch_3) a device exposes as HomeKit accessories.
+ * Shutter products and products without relays return 0.
  */
 export function relayCount(device: SmartGradeDevice): number {
   const pid = productId(device);
-  if (pid !== null && NON_RELAY_PRODUCTS.has(pid)) {
+  if (pid !== null && (NON_RELAY_PRODUCTS.has(pid) || SHUTTER_PRODUCTS.has(pid))) {
     return 0;
   }
   if (
-    (pid === null || (!SWITCH_PRODUCTS.has(pid) && !SHUTTER_PRODUCTS.has(pid))) &&
+    (pid === null || !SWITCH_PRODUCTS.has(pid)) &&
     typeof device.switch_1 !== 'boolean'
   ) {
     return 0;
@@ -112,18 +120,14 @@ export interface ResolvedRelay {
   hidden: boolean;
 }
 
-function cleanId(id: unknown): string {
-  return String(id ?? '').replace(/[:-]/g, '').toLowerCase();
-}
-
 /**
  * Resolve how one relay of a device is exposed. A config entry for the exact
  * relay wins over an entry for the whole device; without any entry the relay
- * is a Switch. Shutter relays are hidden unless a config entry exists for them.
+ * is a Switch.
  */
 export function resolveRelay(device: SmartGradeDevice, relay: number, configs: DeviceConfig[] = []): ResolvedRelay {
-  const id = cleanId(device.id);
-  const forDevice = configs.filter((c) => c && cleanId(c.id) === id);
+  const id = normalizeDeviceId(device.id);
+  const forDevice = configs.filter((c) => c && normalizeDeviceId(c.id) === id);
   const exact = forDevice.find((c) => Number(c.relay) === relay);
   const whole = forDevice.find((c) => c.relay === undefined || c.relay === null || String(c.relay) === '');
   const merged: DeviceConfig = { id, ...whole, ...exact };
@@ -139,13 +143,11 @@ export function resolveRelay(device: SmartGradeDevice, relay: number, configs: D
   const type = merged.accessoryType && ['switch', 'outlet', 'valve'].includes(merged.accessoryType)
     ? merged.accessoryType
     : 'switch';
-  const pid = productId(device);
-  const isShutter = pid !== null && SHUTTER_PRODUCTS.has(pid);
   return {
     relay,
     name,
     accessoryType: type,
     valveType: merged.valveType === 'faucet' ? 'faucet' : 'generic',
-    hidden: Boolean(merged.hidden) || (isShutter && forDevice.length === 0),
+    hidden: Boolean(merged.hidden),
   };
 }
